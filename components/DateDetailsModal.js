@@ -1,19 +1,50 @@
 "use client"
 
-import { X, Calendar, Star, Sun, Moon, Clock } from "lucide-react"
+import { X, Calendar, Star, Sun, Moon, Clock, Edit3, Save } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { useState, useEffect } from "react"
 import { festivals, getPanchangData, getZodiacSign, getGujaratiDate, getZodiacDetails } from "../lib/calendarData"
 
 const DateDetailsModal = ({ date, isOpen, onClose }) => {
-  if (!isOpen) return null
+  const [note, setNote] = useState("")
+  const [isEditingNote, setIsEditingNote] = useState(false)
+  const [savedNotes, setSavedNotes] = useState({})
+  const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+
+  useEffect(() => {
+    // Load saved notes from localStorage
+    const storedNotes = localStorage.getItem("calendarNotes")
+    if (storedNotes) {
+      const parsedNotes = JSON.parse(storedNotes)
+      setSavedNotes(parsedNotes)
+      setNote(parsedNotes[dateKey] || "")
+    }
+  }, [dateKey])
+
+  const handleSaveNote = () => {
+    const updatedNotes = {
+      ...savedNotes,
+      [dateKey]: note,
+    }
+    setSavedNotes(updatedNotes)
+    localStorage.setItem("calendarNotes", JSON.stringify(updatedNotes))
+    setIsEditingNote(false)
+  }
+
+  const handleEditNote = () => {
+    setIsEditingNote(true)
+  }
 
   const festival = festivals[`${date.getDate()}-${date.getMonth() + 1}`]
   const panchangData = getPanchangData(date)
   const zodiacSign = getZodiacSign(date)
   const gujaratiDate = getGujaratiDate(date)
   const zodiacDetails = getZodiacDetails(zodiacSign)
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -77,6 +108,67 @@ const DateDetailsModal = ({ date, isOpen, onClose }) => {
               </div>
             </div>
           )}
+
+          {/* Notes Section */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-200 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-blue-700 flex items-center gap-3">
+                <Edit3 className="w-6 h-6" />
+                <div className="flex flex-col">
+                  <span className="gujarati-text">નોંધ</span>
+                  <span className="text-lg font-medium text-blue-600">Personal Notes</span>
+                </div>
+              </h3>
+              {!isEditingNote && (
+                <Button
+                  onClick={handleEditNote}
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  {note ? "Edit" : "Add Note"}
+                </Button>
+              )}
+            </div>
+
+            <div className="bg-white p-4 rounded-xl shadow-sm">
+              {isEditingNote ? (
+                <div className="space-y-4">
+                  <Textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Add your personal notes for this date..."
+                    className="min-h-[120px] resize-none border-blue-200 focus:border-blue-400"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      onClick={() => {
+                        setNote(savedNotes[dateKey] || "")
+                        setIsEditingNote(false)
+                      }}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveNote} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save Note
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="min-h-[60px] flex items-center">
+                  {note ? (
+                    <p className="text-gray-700 whitespace-pre-wrap">{note}</p>
+                  ) : (
+                    <p className="text-gray-400 italic">No notes added for this date</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Panchang Details */}
           <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-2xl border border-yellow-200 shadow-lg">
